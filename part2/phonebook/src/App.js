@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import axios from 'axios'
+import personService from './services/persons'
+import persons from './services/persons';
 
 const Filter = (props) => {
   const handleFilterChange = (event) => {
@@ -21,13 +22,31 @@ const PersonForm = (props) => {
     props.setNewNumber(event.target.value)
   }
 
+  // Adds contact
   const addContact = (event) => {
     event.preventDefault()
 
+    // Checks phonebook for duplicates
     for (const person of props.persons) {
       if (person.name === props.newName) {
-        alert(`${props.newName} is already added to phonebook`);
-        return;
+        const confirmed = window.confirm(`${props.newName} is already added to phonebook, replace the old number with a new one?`)
+        
+        // Updates phonenumber of duplicate
+        if(confirmed) {
+          const changedPerson = { ...person, number: props.newNumber }
+
+          personService
+            .update(person.id, changedPerson)
+            .then(returnedPerson => {
+              // Updated the array with the changed person
+              const updatedPersons = props.persons.map(p => p.id !== person.id ? p : returnedPerson)
+
+              // Update the state
+              props.setPersons(updatedPersons)
+            })
+        }
+
+        return
       }
     }
 
@@ -36,9 +55,13 @@ const PersonForm = (props) => {
       number: props.newNumber
     }
 
-    props.setPersons(props.persons.concat(personObject))
-    props.setNewName('')
-    props.setNewNumber('')
+    personService
+    .create(personObject)
+    .then(returnedPerson => {
+      props.setPersons(props.persons.concat(returnedPerson))
+      props.setNewName('')
+      props.setNewNumber('')
+    })
   }
 
   return (
@@ -58,8 +81,31 @@ const PersonForm = (props) => {
 }
 
 const Person = (props) => {
+
+  // Removes contact
+  const removeContact = (event) => {
+    event.preventDefault()
+
+    const confirmed = window.confirm(`Delete ${props.person.name} ?`)
+      if(confirmed) {
+        personService
+        .remove(props.person.id)
+        .then(response => {
+          // Filter out the deleted person from the array
+          const updatedPersons = props.persons.filter(person => person.id !== props.person.id)
+  
+          // Update the state
+          props.setPersons(updatedPersons)
+      })
+    }
+  }
+
   return (
-    <>{props.person.name} {props.person.number}<br /></>
+    <>
+      {props.person.name} {props.person.number}
+      <button onClick={removeContact}>delete</button>
+      <br />
+    </>
   )
 }
 
@@ -67,7 +113,7 @@ const Persons = (props) => {
   return (
     <>
       {props.persons.filter(person => person.name.includes(props.filter)).map(person =>
-        <Person key={person.name} person={person} />
+        <Person key={person.name} person={person} persons={props.persons} setPersons={props.setPersons} />
       )}
     </>
   )
@@ -78,10 +124,10 @@ const App = () => {
 
   // Get persons from db.json
   useEffect(() => {
-    axios
-      .get('http://localhost:3001/persons')
-      .then(response => {
-        setPersons(response.data)
+    personService
+      .getAll()
+      .then(initialContacts => {
+        setPersons(initialContacts)
       })
   }, [])
 
@@ -98,7 +144,7 @@ const App = () => {
         newName={newName} setNewName={setNewName} 
         newNumber={newNumber} setNewNumber={setNewNumber} />
       <h2>Numbers</h2>
-      <Persons persons={persons} filter={newFilter} />
+      <Persons persons={persons} setPersons={setPersons} filter={newFilter} />
     </div>
   )
 }
