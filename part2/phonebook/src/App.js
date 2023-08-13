@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import personService from './services/persons'
-import persons from './services/persons';
 
 const Filter = (props) => {
   const handleFilterChange = (event) => {
@@ -43,9 +42,26 @@ const PersonForm = (props) => {
 
               // Update the state
               props.setPersons(updatedPersons)
+              props.setNewName('')
+              props.setNewNumber('')
+
+              props.setMessage(
+                `Changed ${props.newName}'s number`
+              )
+              setTimeout(() => {
+                props.setMessage(null)
+              }, 3000)
+            })
+            .catch(error => {
+              props.setErrorMessage(
+                `Information of '${person.name}' has already been removed from server`
+              )
+              setTimeout(() => {
+                props.setErrorMessage(null)
+              }, 3000)
             })
         }
-
+        
         return
       }
     }
@@ -62,6 +78,13 @@ const PersonForm = (props) => {
       props.setNewName('')
       props.setNewNumber('')
     })
+
+    props.setMessage(
+      `Added ${props.newName}`
+    )
+    setTimeout(() => {
+      props.setMessage(null)
+    }, 3000)
   }
 
   return (
@@ -96,13 +119,21 @@ const Person = (props) => {
   
           // Update the state
           props.setPersons(updatedPersons)
-      })
+        })
+        .catch(error => {
+          props.setErrorMessage(
+            `Information of '${props.person.name}' has already been removed from server`
+          )
+          setTimeout(() => {
+            props.setErrorMessage(null)
+          }, 3000)
+        })
     }
   }
 
   return (
     <>
-      {props.person.name} {props.person.number}
+      {props.person.name} {props.person.number}&nbsp;
       <button onClick={removeContact}>delete</button>
       <br />
     </>
@@ -113,9 +144,31 @@ const Persons = (props) => {
   return (
     <>
       {props.persons.filter(person => person.name.includes(props.filter)).map(person =>
-        <Person key={person.name} person={person} persons={props.persons} setPersons={props.setPersons} />
+        <Person key={person.name} person={person} persons={props.persons} setPersons={props.setPersons} setErrorMessage={props.setErrorMessage}/>
       )}
     </>
+  )
+}
+
+// Shows create and update notifications in green. Shows errors in red.
+const Notification = ({ message, messageColor }) => {
+  const notificationStyle = {
+    color: messageColor,
+    background: 'lightgrey',
+    fontSize: 20,
+    borderStyle: 'solid',
+    borderRadius: 5,
+    padding: 10,
+    marginBottom: 10
+  }
+  if (message === null) {
+    return null
+  }
+
+  return (
+    <div style={notificationStyle}>
+      {message}
+    </div>
   )
 }
 
@@ -134,17 +187,22 @@ const App = () => {
   const [newName, setNewName] = useState('')
   const [newNumber, setNewNumber] = useState('')
   const [newFilter, setNewFilter] = useState('')
+  const [message, setMessage] = useState(null)
+  const [errorMessage, setErrorMessage] = useState(null)
 
   return (
     <div>
       <h2>Phonebook</h2>
+      <Notification message={message} messageColor='green' />
+      <Notification message={errorMessage} messageColor='red' />
       <Filter filter={newFilter} setFilter={setNewFilter} />
       <h2>add a new</h2>
       <PersonForm persons={persons} setPersons={setPersons} 
         newName={newName} setNewName={setNewName} 
-        newNumber={newNumber} setNewNumber={setNewNumber} />
+        newNumber={newNumber} setNewNumber={setNewNumber}
+        setMessage={setMessage} setErrorMessage={setErrorMessage}/>
       <h2>Numbers</h2>
-      <Persons persons={persons} setPersons={setPersons} filter={newFilter} />
+      <Persons persons={persons} setPersons={setPersons} filter={newFilter} setErrorMessage={setErrorMessage} />
     </div>
   )
 }
