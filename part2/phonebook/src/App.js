@@ -25,6 +25,9 @@ const PersonForm = (props) => {
   const addContact = (event) => {
     event.preventDefault()
 
+    // Initialize a flag to track errors
+    let isError = false;
+
     // Checks phonebook for duplicates
     for (const person of props.persons) {
       if (person.name === props.newName) {
@@ -78,13 +81,25 @@ const PersonForm = (props) => {
       props.setNewName('')
       props.setNewNumber('')
     })
-
-    props.setMessage(
-      `Added ${props.newName}`
-    )
-    setTimeout(() => {
-      props.setMessage(null)
-    }, 3000)
+    .catch(error => {
+      isError = true
+      // Show contents of error
+      props.setErrorMessage(error.response.data.error)
+      setTimeout(() => {
+        props.setErrorMessage(null)
+      }, 3000)
+    })
+    .finally(() => {
+      if (!isError) {
+        // If no error occurred, then show that a new contact was added
+        props.setMessage(
+          `Added ${props.newName}`
+        )
+        setTimeout(() => {
+          props.setMessage(null)
+        }, 3000)
+      }
+    })
   }
 
   return (
